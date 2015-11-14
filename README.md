@@ -1,4 +1,5 @@
 # Muxwrap
+[![wercker status](https://app.wercker.com/status/ceefa97401e7f0740fa094ffbde40dba/m "wercker status")](https://app.wercker.com/project/bykey/ceefa97401e7f0740fa094ffbde40dba)
 
 A simple http.ServeMux wrapper adding shortcuts and middleware support.
 
