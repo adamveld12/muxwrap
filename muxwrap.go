@@ -52,6 +52,7 @@ type Mux interface {
 	Handle(pattern string, handler http.HandlerFunc)
 }
 
+// New initializes a returns a new instance of Mux
 func New(middlewares ...Middleware) Mux {
 	return &builder{http.NewServeMux(), middlewares}
 }
@@ -103,11 +104,47 @@ func (b *builder) strictMethodForHandler(method httpMethod, pattern string, hand
 	b.ServeMux.Handle(pattern, StrictMethod(method)(handler))
 }
 
+func wrap(handler http.Handler, b *builder) http.Handler {
+	mw := b.middlewareStack
+	mc := len(mw) - 1
+
+	if mc >= 0 {
+		for i := range mw {
+			m := mw[mc-i]
+			handler = m(handler)
+		}
+	}
+
+	return handler
+}
+
+// Count counts the number of times this middleware has run
+func Count(next http.Handler) http.Handler {
+	counter := make(chan int)
+	count := 0
+
+	go func() {
+		for {
+			select {
+			case <-counter:
+				count++
+			case counter <- count:
+			}
+		}
+	}()
+
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		counter <- 0
+		next.ServeHTTP(res, req)
+		<-counter
+	})
+}
+
 // Elapsed time shows the total elapsed time of a request
 func ElapsedTime(next http.Handler, elapsedCb func(res http.ResponseWriter, req *http.Request, elapsed time.Duration)) http.Handler {
 	if elapsedCb == nil {
 		elapsedCb = func(res http.ResponseWriter, req *http.Request, elapsed time.Duration) {
-			log.Printf("%s took %s \n", req.URL.RawPath, elapsed)
+			log.Printf("[DEBUG] %s took %s \n", req.URL.RawPath, elapsed)
 		}
 	}
 
@@ -140,19 +177,4 @@ func StrictMethod(methods ...httpMethod) Middleware {
 			next.ServeHTTP(res, req)
 		})
 	}
-}
-
-func wrap(handler http.Handler, b *builder) http.Handler {
-	mw := b.middlewareStack
-	mc := len(mw) - 1
-
-	if mc >= 0 {
-		for i := range mw {
-			m := mw[mc-i]
-			handler = m(handler)
-		}
-	}
-
-	return handler
-
 }
