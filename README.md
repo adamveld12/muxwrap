@@ -7,7 +7,7 @@ A simple http.ServeMux wrapper adding shortcuts and middleware support.
 
 ```go
 func main(){
-  mux := stratus.New()
+  mux := muxwrap.New()
 
   mux.Get("/content/", http.FileServer("static"))
   mux.Embed("/api/v1", apiRoutes())
@@ -16,8 +16,8 @@ func main(){
   http.listenAndServe(":8080", mux)
 }
 
-func apiRoutes() *stratus.Mux {
-  mux := stratus.New(ElapsedRequestTime)
+func apiRoutes() *muxwrap.Mux {
+  mux := muxwrap.New(ElapsedRequestTime)
 
   mux.Get("/users", getUsers)
   mux.Post("/users", createUser)
