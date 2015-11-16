@@ -16,7 +16,7 @@ func main(){
   http.listenAndServe(":8080", mux)
 }
 
-func apiRoutes() *muxwrap.Mux {
+func apiRoutes() muxwrap.Mux {
   mux := muxwrap.New(ElapsedRequestTime)
 
   mux.Get("/users", getUsers)
