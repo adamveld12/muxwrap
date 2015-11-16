@@ -4,9 +4,8 @@ Package muxwrap implements helper functions for fluently building http APIs
 package muxwrap
 
 import (
-	"log"
+	"fmt"
 	"net/http"
-	"time"
 )
 
 const (
@@ -58,12 +57,13 @@ type Mux interface {
 
 // New initializes a returns a new instance of Mux
 func New(middlewares ...Middleware) Mux {
-	return &builder{http.NewServeMux(), middlewares}
+	return &builder{http.NewServeMux(), middlewares, map[string]multiMethodHandler{}}
 }
 
 type builder struct {
 	*http.ServeMux
-	middlewareStack []Middleware
+	middlewares []Middleware
+	mmHandlers  map[string]multiMethodHandler
 }
 
 func (b *builder) Handle(pattern string, handler http.HandlerFunc) {
@@ -71,27 +71,27 @@ func (b *builder) Handle(pattern string, handler http.HandlerFunc) {
 }
 
 func (b *builder) Push(middleware Middleware) {
-	b.middlewareStack = append(b.middlewareStack, middleware)
+	b.middlewares = append(b.middlewares, middleware)
 }
 
 func (b *builder) Get(pattern string, handler http.HandlerFunc) {
-	b.strictMethodForHandler(Get, pattern, handler)
+	b.addStrictHandler(Get, pattern, handler)
 }
 
 func (b *builder) Post(pattern string, handler http.HandlerFunc) {
-	b.strictMethodForHandler(Post, pattern, handler)
+	b.addStrictHandler(Post, pattern, handler)
 }
 
 func (b *builder) Head(pattern string, handler http.HandlerFunc) {
-	b.strictMethodForHandler(Head, pattern, handler)
+	b.addStrictHandler(Head, pattern, handler)
 }
 
 func (b *builder) Put(pattern string, handler http.HandlerFunc) {
-	b.strictMethodForHandler(Put, pattern, handler)
+	b.addStrictHandler(Put, pattern, handler)
 }
 
 func (b *builder) Delete(pattern string, handler http.HandlerFunc) {
-	b.strictMethodForHandler(Delete, pattern, handler)
+	b.addStrictHandler(Delete, pattern, handler)
 }
 
 // Embed embeds an http.ServeMux rooted at the pattern sepcified
@@ -104,12 +104,28 @@ func (b *builder) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	wrap(handler, b).ServeHTTP(res, req)
 }
 
-func (b *builder) strictMethodForHandler(method httpMethod, pattern string, handler http.HandlerFunc) {
-	b.ServeMux.Handle(pattern, StrictMethod(method)(handler))
+func (b *builder) addStrictHandler(method httpMethod, pattern string, handler http.HandlerFunc) {
+	methodStr := string(method)
+
+	mmHandler, exists := b.mmHandlers[pattern]
+
+	if !exists {
+		mmHandler = multiMethodHandler{&map[string]http.Handler{}}
+		b.mmHandlers[pattern] = mmHandler
+		b.ServeMux.Handle(pattern, mmHandler)
+	}
+
+	strictHandlerMap := *mmHandler.handlers
+
+	if _, handlerExists := strictHandlerMap[methodStr]; handlerExists {
+		panic(fmt.Sprintf("multiple registrations for %s %s", methodStr, pattern))
+	}
+
+	strictHandlerMap[methodStr] = StrictMethod(method)(handler)
 }
 
 func wrap(handler http.Handler, b *builder) http.Handler {
-	mw := b.middlewareStack
+	mw := b.middlewares
 	mc := len(mw) - 1
 
 	if mc >= 0 {
@@ -122,8 +138,17 @@ func wrap(handler http.Handler, b *builder) http.Handler {
 	return handler
 }
 
+type multiMethodHandler struct {
+	handlers *map[string]http.Handler
 }
 
+func (m multiMethodHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	method := req.Method
+	handler, ok := (*m.handlers)[method]
 
+	if !ok {
+		res.WriteHeader(http.StatusMethodNotAllowed)
+	} else {
+		handler.ServeHTTP(res, req)
 	}
 }

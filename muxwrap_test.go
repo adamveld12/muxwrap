@@ -11,6 +11,68 @@ import (
 	"testing"
 )
 
+func TestPanicsWhenMultipleStrictHandlersForSameMethod(t *testing.T) {
+	mux := New()
+
+	mux.Get("/", func(res http.ResponseWriter, req *http.Request) {
+		res.Write([]byte("GET"))
+	})
+
+	func() {
+		errStr := "http: multiple registrations for /"
+		defer func() {
+			if err := recover(); err == nil || err != errStr {
+				t.Errorf("\nexpected\n%s\nactual\n%s", errStr, err)
+			}
+		}()
+
+		mux.Handle("/", func(res http.ResponseWriter, req *http.Request) {})
+	}()
+
+	func() {
+		errStr := "multiple registrations for GET /"
+		defer func() {
+			if err := recover(); err == nil || err != errStr {
+				t.Errorf("\nexpected\n%s\nactual\n%s", errStr, err)
+			}
+		}()
+
+		mux.Get("/", func(res http.ResponseWriter, req *http.Request) {
+			res.Write([]byte("GET"))
+		})
+	}()
+}
+
+func TestCanRegisterMultipleStrictHandlersToSameRoute(t *testing.T) {
+	mux := New()
+
+	mux.Get("/", func(res http.ResponseWriter, req *http.Request) {
+		res.Write([]byte("GET"))
+	})
+
+	mux.Post("/", func(res http.ResponseWriter, req *http.Request) {
+		res.Write([]byte("POST"))
+	})
+
+	getResponse := httptest.NewRecorder()
+	getReq, _ := http.NewRequest("GET", "/", bytes.NewBuffer([]byte{}))
+	mux.ServeHTTP(getResponse, getReq)
+
+	output, err := getResponse.Body.ReadString('\n')
+	if err != nil && err != io.EOF && string(output) != "GET" {
+		t.Errorf("expected GET actual %s", string(output))
+	}
+
+	postResponse := httptest.NewRecorder()
+	postReq, _ := http.NewRequest("GET", "/", bytes.NewBuffer([]byte{}))
+	mux.ServeHTTP(postResponse, postReq)
+
+	output, err = postResponse.Body.ReadString('\n')
+	if err != nil && err != io.EOF && string(output) != "POST" {
+		t.Errorf("expected POST actual %s", string(output))
+	}
+}
+
 func TestMiddlewareHandlersExecuteInCorrectOrder(t *testing.T) {
 
 	hBuilder := func(payload string) Middleware {
