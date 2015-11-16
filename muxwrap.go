@@ -128,11 +128,9 @@ func wrap(handler http.Handler, b *builder) http.Handler {
 	mw := b.middlewares
 	mc := len(mw) - 1
 
-	if mc >= 0 {
-		for i := range mw {
-			m := mw[mc-i]
-			handler = m(handler)
-		}
+	for i := range mw {
+		m := mw[mc-i]
+		handler = m(handler)
 	}
 
 	return handler
