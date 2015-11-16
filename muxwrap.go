@@ -9,12 +9,16 @@ import (
 	"time"
 )
 
-// Constants for HTTP methods
 const (
-	Get    = httpMethod("GET")
-	Post   = httpMethod("POSt")
-	Put    = httpMethod("PUT")
-	Head   = httpMethod("HEAD")
+	// Get is for HTTP method GET
+	Get = httpMethod("GET")
+	// Post is for HTTP method POST
+	Post = httpMethod("POSt")
+	// Put is a constant for HTTP method PUT
+	Put = httpMethod("PUT")
+	// Head is a constant for HTTP method HEAD
+	Head = httpMethod("HEAD")
+	// Delete is a constant for HTTP method DELETE
 	Delete = httpMethod("DELETE")
 )
 
@@ -48,7 +52,7 @@ type Mux interface {
 	// Embed will place a handler rooted under the specified pattern using http.StripPrefix
 	Embed(pattern string, handler http.Handler)
 
-	// Registers a handler for the specified pattern
+	// Handle registers a handler for the specified pattern
 	Handle(pattern string, handler http.HandlerFunc)
 }
 
