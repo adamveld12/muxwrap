@@ -6,33 +6,11 @@ import (
 	"time"
 )
 
-// Count counts the number of times this middleware has run
-func Count(next http.Handler) http.Handler {
-	counter := make(chan int)
-	count := 0
-
-	go func() {
-		for {
-			select {
-			case <-counter:
-				count++
-			case counter <- count:
-			}
-		}
-	}()
-
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		counter <- 0
-		next.ServeHTTP(res, req)
-		<-counter
-	})
-}
-
-// Elapsed time shows the total elapsed time of a request
+// ElapsedTime shows the total elapsed time of a request
 func ElapsedTime(elapsedCb func(res http.ResponseWriter, req *http.Request, elapsed time.Duration)) Middleware {
 	if elapsedCb == nil {
 		elapsedCb = func(res http.ResponseWriter, req *http.Request, elapsed time.Duration) {
-			log.Printf("[DEBUG] %s took %s \n", req.URL.RawPath, elapsed)
+			log.Printf("[DEBUG] %s took %s \n", req.URL.Path, elapsed)
 		}
 	}
 
