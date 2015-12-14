@@ -12,7 +12,7 @@ const (
 	// Get is for HTTP method GET
 	Get = httpMethod("GET")
 	// Post is for HTTP method POST
-	Post = httpMethod("POSt")
+	Post = httpMethod("POST")
 	// Put is a constant for HTTP method PUT
 	Put = httpMethod("PUT")
 	// Head is a constant for HTTP method HEAD

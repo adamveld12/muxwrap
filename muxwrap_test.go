@@ -55,7 +55,7 @@ func TestCanRegisterMultipleStrictHandlersToSameRoute(t *testing.T) {
 	})
 
 	getResponse := httptest.NewRecorder()
-	getReq, _ := http.NewRequest("GET", "/", bytes.NewBuffer([]byte{}))
+	getReq, _ := http.NewRequest("GET", "/", &bytes.Buffer{})
 	mux.ServeHTTP(getResponse, getReq)
 
 	output, err := getResponse.Body.ReadString('\n')
@@ -64,7 +64,7 @@ func TestCanRegisterMultipleStrictHandlersToSameRoute(t *testing.T) {
 	}
 
 	postResponse := httptest.NewRecorder()
-	postReq, _ := http.NewRequest("GET", "/", bytes.NewBuffer([]byte{}))
+	postReq, _ := http.NewRequest("POST", "/", &bytes.Buffer{})
 	mux.ServeHTTP(postResponse, postReq)
 
 	output, err = postResponse.Body.ReadString('\n')
