@@ -101,7 +101,7 @@ func (b *builder) Embed(pattern string, handler http.Handler) {
 
 func (b *builder) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	handler, _ := b.ServeMux.Handler(req)
-	wrap(handler, b).ServeHTTP(res, req)
+	Use(handler.ServeHTTP, b.middlewares...).ServeHTTP(res, req)
 }
 
 func (b *builder) addStrictHandler(method httpMethod, pattern string, handler http.HandlerFunc) {
@@ -122,18 +122,6 @@ func (b *builder) addStrictHandler(method httpMethod, pattern string, handler ht
 	}
 
 	strictHandlerMap[methodStr] = StrictMethod(method)(handler)
-}
-
-func wrap(handler http.Handler, b *builder) http.Handler {
-	mw := b.middlewares
-	mc := len(mw) - 1
-
-	for i := range mw {
-		m := mw[mc-i]
-		handler = m(handler)
-	}
-
-	return handler
 }
 
 type multiMethodHandler struct {
