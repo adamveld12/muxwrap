@@ -6,6 +6,7 @@ package muxwrap
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -96,7 +97,12 @@ func (b *builder) Delete(pattern string, handler http.HandlerFunc) {
 
 // Embed embeds an http.ServeMux rooted at the pattern sepcified
 func (b *builder) Embed(pattern string, handler http.Handler) {
-	b.ServeMux.Handle(pattern, http.StripPrefix(pattern, handler))
+	strip := pattern
+	if strip != "/" {
+		strip = strings.TrimSuffix(strip, "/")
+	}
+
+	b.ServeMux.Handle(pattern, http.StripPrefix(strip, handler))
 }
 
 func (b *builder) ServeHTTP(res http.ResponseWriter, req *http.Request) {
